@@ -31,7 +31,7 @@ REST API + React arayüz + PostgreSQL ile çalışan, Docker Compose ile tek kom
 |---------------|---------|
 | **API**       | ASP.NET Core 8, Entity Framework Core, Npgsql, Swagger |
 | **Veritabanı** | PostgreSQL (container) |
-| **Arayüz**    | React 19, Vite, nginx (proxy) |
+| **Arayüz**    | React 19, Vite, nginx (reverse proxy) |
 | **Orkestrasyon** | Docker Compose (`frontend`, `api`, `db`, `adminer`) |
 
 ## Özellikler
@@ -39,7 +39,7 @@ REST API + React arayüz + PostgreSQL ile çalışan, Docker Compose ile tek kom
 - **Model:** `MenuItem` — `Id`, `Baslik`, `Aciklama`, `Kategori`, `TarihSaat`, `Fiyat`
 - **REST:** `GET /list`, `POST /add`, `PUT /update/{id}`, `DELETE /delete/{id}`, `GET /info`, `GET /health`
 - **Arayüz:** Arama, kategori filtreleme, sıralama, kart görünümü, düzenleme modal’ı
-- **Docker:** Ortak ağ (`app-network`), kalıcı volume (`db-data`), `depends_on` + veritabanı healthcheck, nginx üzerinden tek public giriş noktası (UI, API aynı origin)
+- **Docker:** Ortak ağ (`app-network`), kalıcı volume (`db-data`), `depends_on` + veritabanı healthcheck, nginx **reverse proxy** ile tek public giriş (UI + API, **aynı origin**)
 
 ## Hızlı başlangıç
 
@@ -60,7 +60,7 @@ docker-compose up -d --build
 
 | Amaç | URL |
 |------|-----|
-| Arayüz | http://localhost:3000 (API istekleri nginx proxy ile aynı origin) |
+| Arayüz | http://localhost:3000 (API, nginx **reverse proxy** ile aynı origin) |
 | API health | http://localhost:8080/health |
 | API info / list | http://localhost:8080/info , http://localhost:8080/list |
 | Veritabanı (Adminer) | http://localhost:8081 |
@@ -77,7 +77,7 @@ docker-compose up -d --build
 | `RestoranMenuYonetimSistemi/Dockerfile` | API imajı |
 | `frontend/` | React (Vite) arayüzü |
 | `frontend/Dockerfile` | Arayüz imajı |
-| `frontend/nginx.app.conf` + `frontend/docker-entrypoint-nginx.sh` | Container içi API ters vekil; tek dış URL |
+| `frontend/nginx.app.conf` + `frontend/docker-entrypoint-nginx.sh` | Container içi API **reverse proxy** (nginx); tek dış URL |
 | `docker-compose.yml` | Tüm servislerin orkestrasyonu |
 | `frontend/.env.example` | `VITE_API_BASE_URL` (lokal) ve üretim FQDN notları |
 
@@ -90,7 +90,7 @@ docker-compose up -d --build
 | `PUT` | `/update/{id}` | Öğe güncelle |
 | `DELETE` | `/delete/{id}` | Öğe sil |
 | `GET` | `/info` | API bilgisi |
-| `GET` | `/health` | Sağlık (DB yokken 503) |
+| `GET` | `/health` | Health check — DB yokken 503 |
 
 ## cURL örnekleri
 
@@ -132,7 +132,7 @@ Hedef: **ACR** + **Azure Container Apps (tercih)** + **Azure Database for Postgr
 | Veritabanı | **Esnek sunucu (PostgreSQL)** |
 | Sırlar | ACA gizli değişkenleri / ileride Key Vault |
 
-Uygulamayı **tek FQDN** altında toplamak (nginx’in arka planda API’ye proxy’si) çoğu senaryoda **tek ACA revizyonunda birden çok container** ve tek ingress ile uyumludur. İki ayrı App Service de mümkündür; fakat iki yönetim noktası, iki public URL ve gateway/Vite kararları genelde daha fazla uğraş demektir.
+Uygulamayı **tek FQDN** altında toplamak (nginx’in arka planda API’ye **reverse proxy** olması) çoğu senaryoda **tek ACA revizyonunda birden çok container** ve tek **ingress** ile uyumludur. İki ayrı App Service de mümkündür; fakat iki yönetim noktası, iki public URL ve gateway/Vite kararları genelde daha fazla uğraş demektir.
 
 **Önerilen ACR repoları (küçük harf):** `restaurant-api`, `restaurant-frontend`
 
@@ -168,7 +168,7 @@ docker push MYACR.azurecr.io/restaurant-frontend:1.0.0
 
 ### 4) Frontend: URL bilinmeden üretim
 
-Üretim build’i, VITE tanımsızken göreli yollar (`/list` …) + **nginx** ters vekil. Compose’da: `API_UPSTREAM=http://api:8080`. **ACA aynı revizyonda iki container** ise: arka uç `http://127.0.0.1:8080`, frontend `API_UPSTREAM=http://127.0.0.1:8080`. İki ayrı public uç için `docker build --build-arg VITE_API_BASE_URL=...` — ayrıntı `frontend/.env.example`.
+Üretim build’i, VITE tanımsızken göreli yollar (`/list` …) + **nginx reverse proxy**. Compose’da: `API_UPSTREAM=http://api:8080`. **ACA aynı revizyonda iki container** ise: arka uç `http://127.0.0.1:8080`, frontend `API_UPSTREAM=http://127.0.0.1:8080`. İki ayrı public uç için `docker build --build-arg VITE_API_BASE_URL=...` — ayrıntı `frontend/.env.example`.
 
 ### 5) Esnek sunucu firewall
 
