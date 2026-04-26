@@ -74,9 +74,9 @@ docker-compose up -d --build
 | Yol | Açıklama |
 |-----|----------|
 | `RestoranMenuYonetimSistemi/` | API kaynak kodu |
-| `RestoranMenuYonetimSistemi/Dockerfile` | API imajı |
+| `RestoranMenuYonetimSistemi/Dockerfile` | API **image** (Dockerfile) |
 | `frontend/` | React (Vite) arayüzü |
-| `frontend/Dockerfile` | Arayüz imajı |
+| `frontend/Dockerfile` | Frontend **image** (Dockerfile) |
 | `frontend/nginx.app.conf` + `frontend/docker-entrypoint-nginx.sh` | Container içi API **reverse proxy** (nginx); tek dış URL |
 | `docker-compose.yml` | Tüm servislerin orkestrasyonu |
 | `frontend/.env.example` | `VITE_API_BASE_URL` (lokal) ve üretim FQDN notları |
@@ -127,18 +127,18 @@ Hedef: **ACR** + **Azure Container Apps (tercih)** + **Azure Database for Postgr
 | Bileşen | Azure hizmeti |
 |---------|------------------|
 | Kaynak gruplaması | Resource Group (ör. `swedencentral` / `westeurope`) |
-| İmaj kaydı | ACR |
-| İş yükü | **Container Apps (ACA)** |
+| **Image** registry | ACR |
+| **Workload** | **Container Apps (ACA)** |
 | Veritabanı | **Esnek sunucu (PostgreSQL)** |
-| Sırlar | ACA gizli değişkenleri / ileride Key Vault |
+| **Secrets** | ACA gizlileri / ileride Key Vault |
 
-Uygulamayı **tek FQDN** altında toplamak (nginx’in arka planda API’ye **reverse proxy** olması) çoğu senaryoda **tek ACA revizyonunda birden çok container** ve tek **ingress** ile uyumludur. İki ayrı App Service de mümkündür; fakat iki yönetim noktası, iki public URL ve gateway/Vite kararları genelde daha fazla uğraş demektir.
+Uygulamayı **tek FQDN** altında toplamak (nginx’in arka planda API’ye **reverse proxy** olması) çoğu senaryoda **tek ACA revision, birden çok container** ve tek **ingress** ile uyumludur. İki ayrı App Service de mümkündür; fakat iki yönetim noktası, iki public URL ve gateway/Vite kararları genelde daha fazla uğraş demektir.
 
 **Önerilen ACR repoları (küçük harf):** `restaurant-api`, `restaurant-frontend`
 
-### 2) ACR: etiketle ve push
+### 2) ACR: **tag** ve **push**
 
-`MYACR`, `1.0.0` ve imaj adlarını kendi ortamınıza göre değiştirin (`docker image ls`).
+`MYACR`, `1.0.0` ve **image** adlarını kendi ortamınıza göre değiştirin (`docker image ls`).
 
 ```bash
 az login
@@ -152,7 +152,7 @@ docker push MYACR.azurecr.io/restaurant-api:1.0.0
 docker push MYACR.azurecr.io/restaurant-frontend:1.0.0
 ```
 
-### 3) API container ortam değişkenleri
+### 3) API container: **environment variables**
 
 | Değişken | Örnek |
 |----------|--------|
@@ -168,7 +168,7 @@ docker push MYACR.azurecr.io/restaurant-frontend:1.0.0
 
 ### 4) Frontend: URL bilinmeden üretim
 
-Üretim build’i, VITE tanımsızken göreli yollar (`/list` …) + **nginx reverse proxy**. Compose’da: `API_UPSTREAM=http://api:8080`. **ACA aynı revizyonda iki container** ise: arka uç `http://127.0.0.1:8080`, frontend `API_UPSTREAM=http://127.0.0.1:8080`. İki ayrı public uç için `docker build --build-arg VITE_API_BASE_URL=...` — ayrıntı `frontend/.env.example`.
+Üretim build’i, VITE tanımsızken göreli yollar (`/list` …) + **nginx reverse proxy**. Compose’da: `API_UPSTREAM=http://api:8080`. **Aynı ACA revision kapsamında iki container** ise: arka uç `http://127.0.0.1:8080`, frontend `API_UPSTREAM=http://127.0.0.1:8080`. İki ayrı public uç için `docker build --build-arg VITE_API_BASE_URL=...` — ayrıntı `frontend/.env.example`.
 
 ### 5) Esnek sunucu firewall
 
