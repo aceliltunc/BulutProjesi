@@ -1,73 +1,100 @@
-# Restoran Menu Yonetim Sistemi
+# Restoran menü yönetim sistemi
 
-Bu proje, ASP.NET Core Web API + React + Entity Framework Core + PostgreSQL + Docker Compose kullanilarak hazirlanmis bir restoran menu yonetim sistemidir.
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=fff)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=fff)](https://docs.docker.com/compose/)
 
-## Proje Durumu
+REST API + React arayüz + PostgreSQL ile çalışan, Docker Compose ile tek komutta ayağa kalkan restoran menü yönetim uygulaması. Bulut hedefi: **Azure** (ACR, Container Apps, Esnek sunucu).
 
-Evet, proje gereksinimlerinin uygulama tarafi tamamlandi:
+**Depo:** [github.com/aceliltunc/BulutProjesi](https://github.com/aceliltunc/BulutProjesi)
 
-- `MenuItem` veri modeli olusturuldu (`Id`, `Baslik`, `Aciklama`, `Kategori`, `TarihSaat`, `Fiyat`).
-- Zorunlu endpointler eklendi:
-  - `GET /list`
-  - `POST /add`
-  - `DELETE /delete/{id}`
-  - `GET /info`
-  - `GET /health`
-- Ek gelistirme:
-  - `PUT /update/{id}` ile urun guncelleme
-  - UI tarafinda arama, kategori filtreleme, siralama, kart gorunumu ve duzenleme modal'i
-- Docker yapisi kuruldu:
-  - `frontend`, `api`, `db` ve `adminer` olmak uzere 4 container
-  - ortak network (`app-network`)
-  - kalici veri icin volume (`db-data`)
-  - `depends_on` + db healthcheck
+---
 
-## Klasor Yapisi
+## İçindekiler
 
-- `RestoranMenuYonetimSistemi/` -> API kaynak kodu
-- `frontend/` -> React UI kaynak kodu
-- `RestoranMenuYonetimSistemi/Dockerfile` -> API image build dosyasi
-- `frontend/Dockerfile` -> React UI image build dosyasi
-- `frontend/nginx.app.conf` + `frontend/docker-entrypoint-nginx.sh` -> UI container icinde API reverse proxy (tek public URL)
-- `docker-compose.yml` -> Frontend + API + PostgreSQL orkestrasyonu
-- `frontend/.env.example` -> `VITE_API_BASE_URL` (lokal) ve ayrin FQDN uretim notu
+- [Teknolojiler](#teknolojiler)
+- [Özellikler](#özellikler)
+- [Hızlı başlangıç](#hızlı-başlangıç)
+- [Proje yapısı](#proje-yapısı)
+- [API uç noktaları](#api-uç-noktaları)
+- [cURL örnekleri](#curl-örnekleri)
+- [PostgreSQL (Docker)](#postgresql-docker)
+- [Cloud: Azure](#cloud-azure)
+- [Durum ve yol haritası](#durum-ve-yol-haritası)
 
-## Calistirma Adimlari (Lokal)
+---
 
-### 1) Gereksinimler
+## Teknolojiler
 
-- Docker Desktop
-- .NET 8 SDK (gelistirme icin)
+| Katman        | Araçlar |
+|---------------|---------|
+| **API**       | ASP.NET Core 8, Entity Framework Core, Npgsql, Swagger |
+| **Veritabanı** | PostgreSQL (container) |
+| **Arayüz**    | React 19, Vite, nginx (proxy) |
+| **Orkestrasyon** | Docker Compose (`frontend`, `api`, `db`, `adminer`) |
 
-### 2) Projeyi Ayaga Kaldirma
+## Özellikler
 
-Proje kok dizininde calistir:
+- **Model:** `MenuItem` — `Id`, `Baslik`, `Aciklama`, `Kategori`, `TarihSaat`, `Fiyat`
+- **REST:** `GET /list`, `POST /add`, `PUT /update/{id}`, `DELETE /delete/{id}`, `GET /info`, `GET /health`
+- **Arayüz:** Arama, kategori filtreleme, sıralama, kart görünümü, düzenleme modal’ı
+- **Docker:** Ortak ağ (`app-network`), kalıcı volume (`db-data`), `depends_on` + veritabanı healthcheck, nginx üzerinden tek public giriş noktası (UI, API aynı origin)
+
+## Hızlı başlangıç
+
+### Gereksinimler
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- (İsteğe bağlı) [.NET 8 SDK](https://dotnet.microsoft.com/download) — yalnızca API’yi Docker dışında geliştirmek için
+
+### Çalıştırma
+
+Proje kökünde:
 
 ```bash
 docker-compose up -d --build
 ```
 
-### 3) Servis Kontrolu
+### Servis adresleri (lokal)
 
-- Health: `http://localhost:8080/health`
-- Info: `http://localhost:8080/info`
-- List: `http://localhost:8080/list`
-- UI: `http://localhost:3000` (API cagrilari ayni origin: nginx, `api` servisine proxy)
-- DB UI (Adminer): `http://localhost:8081`
+| Amaç | URL |
+|------|-----|
+| Arayüz | http://localhost:3000 (API istekleri nginx proxy ile aynı origin) |
+| API health | http://localhost:8080/health |
+| API info / list | http://localhost:8080/info , http://localhost:8080/list |
+| Veritabanı (Adminer) | http://localhost:8081 |
 
-### 4) Adminer ile tablolari goruntuleme
+**Adminer:** System `PostgreSQL`, Server `db`, kullanıcı/şifre `postgres` / `postgres`, veritabanı `restaurantdb`.
 
-`http://localhost:8081` adresine girip su bilgileri kullan:
+> Docker Compose ile **ayrıca makineye PostgreSQL kurmanız gerekmez**; `db` servisi ilk açılışta kalkar. Docker kullanmadan çalıştıracaksanız PostgreSQL’i siz kurup `appsettings.json` bağlantısını güncellemelisiniz.
 
-- System: `PostgreSQL`
-- Server: `db`
-- Username: `postgres`
-- Password: `postgres`
-- Database: `restaurantdb`
+## Proje yapısı
 
-## Endpoint Ornekleri
+| Yol | Açıklama |
+|-----|----------|
+| `RestoranMenuYonetimSistemi/` | API kaynak kodu |
+| `RestoranMenuYonetimSistemi/Dockerfile` | API imajı |
+| `frontend/` | React (Vite) arayüzü |
+| `frontend/Dockerfile` | Arayüz imajı |
+| `frontend/nginx.app.conf` + `frontend/docker-entrypoint-nginx.sh` | Container içi API ters vekil; tek dış URL |
+| `docker-compose.yml` | Tüm servislerin orkestrasyonu |
+| `frontend/.env.example` | `VITE_API_BASE_URL` (lokal) ve üretim FQDN notları |
 
-### Yeni urun ekleme
+## API uç noktaları
+
+| Yöntem | Yol | Açıklama |
+|--------|-----|----------|
+| `GET` | `/list` | Menü öğelerini listele |
+| `POST` | `/add` | Yeni öğe ekle (JSON body) |
+| `PUT` | `/update/{id}` | Öğe güncelle |
+| `DELETE` | `/delete/{id}` | Öğe sil |
+| `GET` | `/info` | API bilgisi |
+| `GET` | `/health` | Sağlık (DB yokken 503) |
+
+## cURL örnekleri
+
+Yeni ürün ekleme:
 
 ```bash
 curl -X POST http://localhost:8080/add \
@@ -75,48 +102,43 @@ curl -X POST http://localhost:8080/add \
   -d "{\"baslik\":\"Iskender\",\"aciklama\":\"Yogurtlu doner\",\"kategori\":\"Ana Yemek\",\"fiyat\":220}"
 ```
 
-### Urunleri listeleme
+Listeleme:
 
 ```bash
 curl http://localhost:8080/list
 ```
 
-### Urun silme
+Silme (`<GUID>` yerine gerçek id):
 
 ```bash
 curl -X DELETE http://localhost:8080/delete/<GUID>
 ```
 
-## PostgreSQL Kurulumunu Ne Zaman Yapacagim?
+## PostgreSQL (Docker)
 
-Docker Compose kullandigin icin ayrica sistemine PostgreSQL kurman zorunlu degil.
+`docker-compose up -d --build` komutu `db` servisini ayağa kaldırdığı için ayrı bir kurulum adımı yok. İlk kez tüm yığını o komutla çalıştırdığınız an veritabanı da hazırdır.
 
-- `docker-compose up -d --build` dediginde `db` servisi PostgreSQL container olarak otomatik kalkar.
-- Yani PostgreSQL kurulum asamasi, uygulamayi ilk kez ayağa kaldirdigin an.
+## Cloud: Azure
 
-Eger "Docker kullanmadan local calistiracagim" dersen, o zaman ayrica PostgreSQL kurup `appsettings.json` baglanti bilgisini elle vermen gerekir.
+Hedef: **ACR** + **Azure Container Apps (tercih)** + **Azure Database for PostgreSQL (Flexible Server)**. AWS/ECS karşılığı: ACA + ACR + Esnek sunucu.
 
-## Cloud: Azure (Hedef)
+### 1) Neden Container Apps (özet)
 
-Azure hedefi: **ACR** + **Container Apps (tercih)** + **Azure Database for PostgreSQL (Flexible Server)**. AWS odevi ECS/RDS karsiligi: ACA + ACR + Esnek Sunucu.
+| Bileşen | Azure hizmeti |
+|---------|------------------|
+| Kaynak gruplaması | Resource Group (ör. `swedencentral` / `westeurope`) |
+| İmaj kaydı | ACR |
+| İş yükü | **Container Apps (ACA)** |
+| Veritabanı | **Esnek sunucu (PostgreSQL)** |
+| Sırlar | ACA gizli değişkenleri / ileride Key Vault |
 
-### 1) Tercih: Azure Container Apps (gerekce)
+Uygulamayı **tek FQDN** altında toplamak (nginx’in arka planda API’ye proxy’si) çoğu senaryoda **tek ACA revizyonunda birden çok container** ve tek ingress ile uyumludur. İki ayrı App Service de mümkündür; fakat iki yönetim noktası, iki public URL ve gateway/Vite kararları genelde daha fazla uğraş demektir.
 
-| Parca | Azure servisi |
-|--------|----------------|
-| Grup (blge) | **Resource Group** (or. `swedencentral` / `westeurope`) |
-| Image | **ACR** |
-| Is yuku | **Container Apps (ACA)** |
-| Veritabani | **Esnek Sunucu (PostgreSQL)** |
-| Sifre | ACA secret / env (ileri: Key Vault) |
+**Önerilen ACR repoları (küçük harf):** `restaurant-api`, `restaurant-frontend`
 
-**Neden bu projede App Service’e gore genelde daha az surtunme?** Uygulamayi **tek FQDN** altinda toplamak (nginx’in arka tarafta API’ye proxy etmesi) dogal olarak **cok container’li tek ACA** ve tek ingress ile uyumludur. Iki ayrin **App Service (Linux) Web App for Containers** da yapilir, fakat cogu senaryoda **iki yonetim noktasi, iki public URL, VITE/build veya gateway karari** sizi daha cok yorar. (App Service, ekibin tercih ettigi platform ise uygundur; mimari ayni kalir, env ve adimlar paraleldir.)
+### 2) ACR: etiketle ve push
 
-**ACR repolari (oneri, kucuk harf):** `restaurant-api`, `restaurant-frontend`
-
-### 2) ACR: imaj etiketle + push (net komutlar)
-
-`MYACR`, `1.0.0` ve lokal imaj isimlerini gercek degerlere cevirip calistir (`docker image ls`).
+`MYACR`, `1.0.0` ve imaj adlarını kendi ortamınıza göre değiştirin (`docker image ls`).
 
 ```bash
 az login
@@ -130,59 +152,57 @@ docker push MYACR.azurecr.io/restaurant-api:1.0.0
 docker push MYACR.azurecr.io/restaurant-frontend:1.0.0
 ```
 
-### 3) API container: ortam degiskenleri
+### 3) API container ortam değişkenleri
 
-| Degisken | Ornek |
+| Değişken | Örnek |
 |----------|--------|
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
 | `ASPNETCORE_URLS` | `http://+:8080` |
-| `ConnectionStrings__DefaultConnection` | Npgsql, tek satir; asagidaki form |
+| `ConnectionStrings__DefaultConnection` | Npgsql tek satır (aşağıdaki gibi) |
 
-**Ornek (Esnek Sunucu, Ssl gerekli):**
+**Esnek sunucu (SSL) örnek string:**
 
 `Host=<ad>.postgres.database.azure.com;Port=5432;Database=restaurantdb;Username=<kullanici>;Password=<sifre>;Ssl Mode=Require;Trust Server Certificate=true`
 
-(Parolayi repoya koyma; Azure portal "Connection string" ciktisini kopyalama pratik yoldur.)
+(Parolayı repoya koymayın; Azure portal’daki “Connection string” pratik yoldur.)
 
-### 4) Frontend: URL bilinmeden uretim
+### 4) Frontend: URL bilinmeden üretim
 
-Uygulanan yol: uretim build’i **VITE yok** iken goreli URL (`/list` …) + **nginx** reverse proxy. Compose’da: `API_UPSTREAM=http://api:8080`. **ACA, ayni revision’da iki container:** ayni pod’da arka API `http://127.0.0.1:8080` — frontend container env: `API_UPSTREAM=http://127.0.0.1:8080`. Iki ayrin public uygulama: `docker build --build-arg VITE_API_BASE_URL=...` (bkz. `frontend/.env.example`).
+Üretim build’i, VITE tanımsızken göreli yollar (`/list` …) + **nginx** ters vekil. Compose’da: `API_UPSTREAM=http://api:8080`. **ACA aynı revizyonda iki container** ise: arka uç `http://127.0.0.1:8080`, frontend `API_UPSTREAM=http://127.0.0.1:8080`. İki ayrı public uç için `docker build --build-arg VITE_API_BASE_URL=...` — ayrıntı `frontend/.env.example`.
 
-### 5) Esnek Sunucu firewall (pratik not)
+### 5) Esnek sunucu firewall
 
-- En temiz: **VNet + private** erisim. Kisa/odev: public + kural; “**Allow Azure services**” (veya karsiligi) **genis** bir ayricaliktir, paylasimli / uretimde **ozel IP / private** tercih edilir. Container/ App Service cikis IP’leri **degisebilir**; tek sabit IP firewall cogu kez yorar, **NAT** veya private endpoint ileri adim.
-- Sadece kendi ofisiniz: mevcut genel cikis IP’nize izin; uygulama trafigi + yonetim trafigini dusun.
+- Daha temiz: **VNet + private** erişim. Kısa süre/ödev: public + kural. “**Allow Azure services**” (veya eşdeğeri) geniş bir ayrıcalıktır; paylaşımlı/üretimde **özel IP / private** tercih edilir. Container/App Service çıkış IP’leri değişebilir; sabit IP firewall’ı sık zorlar; ileri adım **NAT** veya private endpoint.
+- Sadece ofis: mevcut çıkış IP’nize kural; uygulama + yönetim trafiğini düşünün.
 
 ### 6) Health probe (Azure)
 
-- **Yol ve port:** `GET /health`, port **8080** (liveness/ readiness; DB yokken 503).
-- Ilk basta basarisiz olabilsin diye *initial delay* veya dusuk siklik verin; EF + Esnek baglanti hazir olsun.
+- Yol: `GET /health`, port **8080** (liveness / readiness; DB yokken 503).
+- İlk açılışta başarısız olmaması için gecikme / düşük sıklık; EF + Esnek bağlantı hazır olana kadar.
 
-## Not (genel)
+> Bu repo lokalde çalışır; bulutta **Azure** odaklıdır. Teslim: kısa test (endpoint + arayüz) + yukarıdaki eşleştirme, komut ve güvenlik notları yeterlidir.
 
-Bu repo lokalde calisir; bulut tarafta **Azure** ile ilerleme odagidir. Teslimde: kisa test (endpoint + UI) + yukaridaki Azure eslestirme / komut / guvenlik ozetleri yeterlidir.
+## Durum ve yol haritası
 
-## Proje Durum Ozeti (Guncel)
+### Tamamlanan (geliştirme + lokal)
 
-### Tamamlanan (gelistirme + lokal)
+- Backend: `/list`, `/add`, `/update/{id}`, `/delete/{id}`, `/info`, `/health`
+- Frontend: CRUD, Docker içinde aynı origin proxy
+- `docker-compose`: `frontend`, `api`, `db`, `adminer`
 
-- Backend: `/list`, `/add`, `/update/{id}`, `/delete/{id}`, `/info`, `/health` hazir.
-- Frontend: CRUD, ayni origin proxy ile Docker icinde.
-- `docker-compose`: `frontend`, `api`, `db`, `adminer`.
+### Geçmiş (AWS, blokaj)
 
-### Gecmiste (AWS, blokaj)
+ECR’ye push, RDS hazırlığı; canlı **ECS** hesap/aktivasyon gecikmesi nedeniyle tamamlanamadı. Aynı imajlar **ACR**’ye etiketlenerek kullanılabilir.
 
-ECR’ya push, RDS hazirlik; canli **ECS** hesap/aktivasyon gecikmesi nedeniyle tamamlanmadi. Ayni imajlar **ACR**’ya etiketlenerek kullanilabilir.
+### Sırada: Azure (adımlar)
 
-### Sirada: Azure (adim adim, uygulayin)
+1. Lokal: `docker-compose up -d --build` — http://localhost:3000 ve http://localhost:8080/health
+2. **Grup + bölge:** `az group create` (tutarlı bölge/RG)
+3. **ACR:** `az acr create` (Basic yeter), `az acr login`, `docker tag` + `push` (`restaurant-api` / `restaurant-frontend`)
+4. **Esnek sunucu:** `restaurantdb`, kullanıcı/şifre, networking / firewall, bağlantı string’i (SSL) → API env
+5. **Container Apps ortamı:** `az containerapp env create` (Log Analytics); ACR erişimi — tercihen managed identity + `acrPull`
+6. **Uygulama (öneri: tek app, iki container):** API 8080 + env; frontend 80, `API_UPSTREAM=http://127.0.0.1:8080`; sadece frontend ingress; probe: `/health`, 8080
+7. **Test:** FQDN üzerinden arayüz, CRUD, gerekirse log stream
+8. **Rapor:** Mimari, bölge, güvenlik (firewall), gerekirse maliyet; AWS gecikmesi kısa gerekçe
 
-1. **Hazirlik:** `docker-compose up -d --build` ile lokal uctan uca dogrulayin; `http://localhost:3000` uzerinden CRUD, `http://localhost:8080/health` ayri dene.
-2. **Grup + bolge:** `az group create` (or. `swedencentral`); tum kaynaklarda ayni bolge/ RG tutarliligi.
-3. **ACR:** `az acr create` (Basic yeter); `az acr login`; `docker tag` + `push` (yukaridaki 2. baslik; repolar `restaurant-api` / `restaurant-frontend`).
-4. **Esnek Sunucu:** PostgreSQL olustur; `restaurantdb` ve yonetim kullanici/parolayi kaydet; **Networking + firewall** kuralini planlayin; baglanti string’i (Ssl) API env’e hazirlayin.
-5. **Container Apps Ortami:** `az containerapp env create` (Log Analytics gerekir); ACR’yi `az acr update --admin-enabled true` veya *managed identity* ile ACA’ya cekir erisim (tercih: MI + `acrPull`).
-6. **Uygulama (oneri: tek app, iki container):** API imaji (port 8080, env: `ASPNETCORE_*`, `ConnectionStrings__DefaultConnection`); frontend imaji (port 80, `API_UPSTREAM=http://127.0.0.1:8080`); yalnizca **frontend** ingress 80/443; API **dis ingress kapali** veya ici kalabilir. HTTP probe: `/health`, 8080.
-7. **Test:** FQDN uzerinden UI; menu ekleme/silme; gerekirse Log stream.
-8. **Rapor:** Mimari, bolge, guvenlik (firewall), gerekirse maliyet; AWS gecmisi kisa gerekce (hesap gecikmesi).
-
-Bu liste README ile ayni yonde tutulacak sekilde isaretlenebilir; ek otomasyon (Bicep/ARM) bu repoda zorunlu degildir.
+Ek otomasyon (Bicep/ARM) bu depoda zorunlu değildir; README ile uyumlu işaretleme yeterlidir.
