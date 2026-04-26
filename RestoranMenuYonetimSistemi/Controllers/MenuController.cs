@@ -63,6 +63,7 @@ public class MenuController : ControllerBase
         item.Baslik = updatedItem.Baslik;
         item.Aciklama = updatedItem.Aciklama;
         item.Kategori = updatedItem.Kategori;
+        item.TarihSaat = updatedItem.TarihSaat;
         item.Fiyat = updatedItem.Fiyat;
 
         await _context.SaveChangesAsync();
