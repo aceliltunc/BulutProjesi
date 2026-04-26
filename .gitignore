@@ -1,0 +1,18 @@
+# Rapor (LaTeX, PDF, derleme ciktilari)
+Rapor/
+
+# .NET
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+.vs/
+
+# Ortam / gizli
+.env
+.env.local
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

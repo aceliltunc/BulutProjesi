@@ -1,0 +1,53 @@
+# az containerapp update -g rg-restaurant -n restaurant-app --yaml aca-app-update.yaml
+# Iki kapsanici: api (8080) + frontend (80), dış ingress: 80, Neon baglantisi.
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      allowInsecure: false
+      targetPort: 80
+      transport: auto
+  template:
+    scale:
+      minReplicas: 1
+      maxReplicas: 1
+    containers:
+      - name: api
+        image: cloudrestaurant.azurecr.io/restaurant-api:aca-fix
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        env:
+          - name: ASPNETCORE_ENVIRONMENT
+            value: Production
+          - name: ASPNETCORE_URLS
+            value: http://+:8080
+          - name: ConnectionStrings__DefaultConnection
+            # Neon Npgsql; parolayi portal/secret ile verin, repoya gommeyin
+            value: "Host=...;Port=5432;Database=neondb;Username=...;Password=...;Ssl Mode=Require"
+        probes:
+          - type: Liveness
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+      - name: frontend
+        image: cloudrestaurant.azurecr.io/restaurant-frontend:aca-fix
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        env:
+          - name: API_UPSTREAM
+            value: "http://127.0.0.1:8080"
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
