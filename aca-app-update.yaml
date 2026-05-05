@@ -1,5 +1,7 @@
-# az containerapp update -g rg-restaurant -n restaurant-app --yaml aca-app-update.yaml
-# Iki kapsanici: api (8080) + frontend (80), dış ingress: 80, Neon baglantisi.
+# Adimlar: pg-conn gizlisini yaz (parolayi repoya koyma):
+#   az containerapp secret set -g <RG> -n restaurant-app --secrets "pg-conn=<Npgsql-connection-string>"
+#   az containerapp update -g <RG> -n restaurant-app --yaml aca-app-update.yaml
+# Iki konteyner: api (8080) + frontend (80), ingress 80 -> frontend, API_UPSTREAM 127.0.0.1:8080
 properties:
   configuration:
     activeRevisionsMode: Single
@@ -7,14 +9,15 @@ properties:
       external: true
       allowInsecure: false
       targetPort: 80
-      transport: auto
+      # Auto bazen Envoy-nginx uyumsuzluguna saplanir; sorun gorursen Http kullan:
+      transport: Http
   template:
     scale:
       minReplicas: 1
       maxReplicas: 1
     containers:
       - name: api
-        image: cloudrestaurant.azurecr.io/restaurant-api:aca-fix
+        image: restaurantacr0001.azurecr.io/restaurant-api:1.0.0
         resources:
           cpu: 0.5
           memory: 1Gi
@@ -24,8 +27,7 @@ properties:
           - name: ASPNETCORE_URLS
             value: http://+:8080
           - name: ConnectionStrings__DefaultConnection
-            # Neon Npgsql; parolayi portal/secret ile verin, repoya gommeyin
-            value: "Host=...;Port=5432;Database=neondb;Username=...;Password=...;Ssl Mode=Require"
+            secretRef: pg-conn
         probes:
           - type: Liveness
             tcpSocket:
@@ -35,7 +37,7 @@ properties:
             timeoutSeconds: 3
             failureThreshold: 3
       - name: frontend
-        image: cloudrestaurant.azurecr.io/restaurant-frontend:aca-fix
+        image: restaurantacr0001.azurecr.io/restaurant-frontend:1.0.0
         resources:
           cpu: 0.5
           memory: 1Gi
